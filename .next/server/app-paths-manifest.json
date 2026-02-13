@@ -1,0 +1,9 @@
+{
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/supplier_dashboard/page": "app/supplier_dashboard/page.js",
+  "/supplier_dashboard/completed/page": "app/supplier_dashboard/completed/page.js",
+  "/supplier_dashboard/production/page": "app/supplier_dashboard/production/page.js",
+  "/client_dashboard/production/page": "app/client_dashboard/production/page.js",
+  "/client_dashboard/new-order/page": "app/client_dashboard/new-order/page.js",
+  "/client_dashboard/completed/page": "app/client_dashboard/completed/page.js"
+}

@@ -1,19 +1,19 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
+import { Inter, Roboto_Mono, Playfair_Display } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-sans",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const robotoMono = Roboto_Mono({
+  variable: "--font-mono",
   subsets: ["latin"],
 });
 
 const playfair = Playfair_Display({
-  variable: "--font-playfair",
+  variable: "--font-serif",
   subsets: ["latin"],
 });
 
@@ -30,7 +30,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} antialiased`}
+        className={`${inter.variable} ${robotoMono.variable} ${playfair.variable} antialiased`}
       >
         {children}
       </body>

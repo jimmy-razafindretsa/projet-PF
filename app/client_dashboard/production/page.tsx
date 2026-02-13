@@ -1,8 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { Suspense } from "react";
+import { cookies } from "next/headers";
 
 async function ProductionLineData() {
-    const supabase = await createClient();
+    const cookieStore = cookies();
+    const supabase = createClient(cookieStore);
     const { data: dashboardData, error } = await supabase.from("instruments").select();
 
     if (error) {
