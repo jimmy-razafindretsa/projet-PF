@@ -1,0 +1,405 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { getOrder } from '@/app/actions/getOrder';
+import { updateOrder } from '@/app/actions/updateOrder';
+import { deleteOrder } from '@/app/actions/deleteOrder';
+import { getStatuses } from '@/app/actions/getStatuses';
+import { createClient } from '@/lib/supabase/client';
+import { ArrowLeft, Trash2, Archive, Edit3, Calendar, Truck, CreditCard, FileText, X, Save, AlertTriangle, ExternalLink, User, Hash, RotateCcw } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter, useParams } from 'next/navigation';
+
+interface OrderDetailViewProps {
+    basePath?: string;
+}
+
+export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
+    basePath = '/client_dashboard'
+}) => {
+    const params = useParams();
+    const id = params?.id as string;
+
+    const [order, setOrder] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    // Update State
+    const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+    const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
+    const [statuses, setStatuses] = useState<any[]>([]);
+    const [updateForm, setUpdateForm] = useState({
+        price: '',
+        ship_date: '', // Changed from ord_time
+        note: '',
+        order_status_id: 0
+    });
+
+    const router = useRouter();
+    const supabase = createClient();
+
+    useEffect(() => {
+        if (!id) return;
+
+        const fetchOrder = async () => {
+            try {
+                const { order, error } = await getOrder(id);
+                if (error) {
+                    setError(error);
+                } else {
+                    setOrder(order);
+                }
+            } catch (err: any) {
+                console.error("Fetch error:", err);
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        const loadStatuses = async () => {
+            const data = await getStatuses();
+            setStatuses(data);
+        };
+
+        fetchOrder();
+        loadStatuses();
+    }, [id]);
+
+    const handleOpenUpdate = () => {
+        if (!order) return;
+        setUpdateForm({
+            price: order.price || '',
+            // Handle date for input value (YYYY-MM-DD)
+            ship_date: order.ship_date ? new Date(order.ship_date).toISOString().split('T')[0] : '',
+            note: order.note || '',
+            order_status_id: order.order_status_id || 0
+        });
+        setIsUpdateModalOpen(true);
+    };
+
+    const handleUpdateChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setUpdateForm(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSave = () => {
+        setIsConfirmOpen(true);
+    };
+
+    const handleConfirmUpdate = async () => {
+        console.log("Confirm update clicked");
+        if (!order) return;
+
+        const priceNum = parseFloat(updateForm.price as any);
+
+        // Fix Date Issue: Append time to middle of day to avoid timezone rollback
+        // If user selects 2024-02-15, sending 2024-02-15T12:00:00Z allows it to stay 15th in most timezones
+        // Use null instead of undefined for serialization safety
+        const shipDateValue = updateForm.ship_date ? `${updateForm.ship_date}T12:00:00Z` : null;
+
+        const payload = {
+            id: String(order.id), // Ensure string
+            price: isNaN(priceNum) ? null : priceNum,
+            ship_date: shipDateValue,
+            note: updateForm.note || null,
+            order_status_id: Number(updateForm.order_status_id)
+        };
+
+        console.log("Sending update with:", payload);
+
+        const res = await updateOrder(payload);
+
+        console.log("Update response:", res);
+
+        if (res?.error) {
+            alert(`Update failed: ${res.error}`);
+        } else {
+            router.refresh(); // Use Next.js router refresh
+            setIsConfirmOpen(false);
+            setIsUpdateModalOpen(false);
+        }
+    };
+
+    const handleDeleteClick = () => {
+        setIsDeleteConfirmOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!order) return;
+        const res = await deleteOrder(String(order.id));
+        if (res?.error) {
+            alert(`Delete failed: ${res.error}`);
+            setIsDeleteConfirmOpen(false);
+        } else {
+            router.push(`${basePath}/production`);
+        }
+    };
+
+    const handleArchiveClick = () => {
+        setIsArchiveConfirmOpen(true);
+    };
+
+    const handleConfirmArchive = async () => {
+        if (!order) return;
+
+        const isArchiving = !order.is_archive; // Toggle logic
+
+        // Optimistic UI update or just wait for redirect
+        const res = await updateOrder({
+            id: String(order.id),
+            is_archive: isArchiving
+        });
+
+        if (res?.error) {
+            alert(`${isArchiving ? 'Archive' : 'Restore'} failed: ${res.error}`);
+            setIsArchiveConfirmOpen(false);
+        } else {
+            // Redirect based on action
+            if (isArchiving) {
+                router.push(`${basePath}/completed`);
+            } else {
+                router.push(`${basePath}/production`);
+            }
+        }
+    };
+
+    const getFileUrl = (fileName: string) => {
+        return supabase.storage.from('PDF').getPublicUrl(fileName).data.publicUrl;
+    };
+
+    const fileUrl = order?.file_name ? getFileUrl(order.file_name) : null;
+
+    const formatDate = (dateString: string) => {
+        if (!dateString) return 'N/A';
+        return new Date(dateString).toLocaleDateString('en-US', {
+            year: 'numeric', month: 'long', day: 'numeric'
+        });
+    };
+
+    if (loading) return <div className="flex items-center justify-center min-h-screen text-slate-400">Loading order...</div>;
+    if (error || !order) return <div className="flex flex-col items-center justify-center min-h-screen text-red-500">Error: {error || 'Order not found'}</div>;
+
+    return (
+        <div className="max-w-5xl mx-auto pb-48 relative px-4 sm:px-6 lg:px-8">
+            {/* --- Modals are unchanged essentially, just kept minimal for brevity in thought but included in write --- */}
+            {isUpdateModalOpen && (
+                <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-lg w-full">
+                        <h3 className="text-xl font-bold text-[#1a237e] mb-6">Update Order</h3>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Price (€)</label>
+                                <input type="number" name="price" value={updateForm.price} onChange={handleUpdateChange} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Expected Shipping Date</label>
+                                <input type="date" name="ship_date" value={updateForm.ship_date} onChange={handleUpdateChange} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Status</label>
+                                <select name="order_status_id" value={updateForm.order_status_id} onChange={handleUpdateChange} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3">
+                                    {statuses.map(s => <option key={s.id} value={s.id}>{s.order_status_name}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Note</label>
+                                <textarea name="note" rows={3} value={updateForm.note} onChange={handleUpdateChange} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Update File (Optional)</label>
+                                <input
+                                    type="file"
+                                    accept=".pdf"
+                                    onChange={(e) => { }}
+                                    className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                                />
+                            </div>
+                        </div>
+                        <div className="flex gap-3 mt-6">
+                            <button onClick={() => setIsUpdateModalOpen(false)} className="flex-1 py-3 rounded-xl border border-slate-200">Cancel</button>
+                            <button onClick={handleSave} className="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-semibold">Save</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {isConfirmOpen && (
+                <div className="fixed inset-0 bg-black/60 z-[110] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-xl shadow-2xl p-8 max-w-sm w-full text-center">
+                        <AlertTriangle className="w-10 h-10 text-yellow-500 mx-auto mb-4" />
+                        <h3 className="text-lg font-bold mb-2">Confirm Updates?</h3>
+                        <div className="flex gap-3 mt-6">
+                            <button onClick={() => setIsConfirmOpen(false)} className="flex-1 py-2 rounded-lg border">No</button>
+                            <button onClick={handleConfirmUpdate} className="flex-1 py-2 rounded-lg bg-indigo-600 text-white">Yes</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {isDeleteConfirmOpen && (
+                <div className="fixed inset-0 bg-black/60 z-[110] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-xl shadow-2xl p-8 max-w-sm w-full text-center">
+                        <AlertTriangle className="w-10 h-10 text-red-500 mx-auto mb-4" />
+                        <h3 className="text-lg font-bold mb-2 text-red-600">Delete Order?</h3>
+                        <p className="text-sm text-gray-500">This action cannot be undone.</p>
+                        <div className="flex gap-3 mt-6">
+                            <button onClick={() => setIsDeleteConfirmOpen(false)} className="flex-1 py-2 rounded-lg border hover:bg-gray-50">Cancel</button>
+                            <button onClick={handleConfirmDelete} className="flex-1 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {isArchiveConfirmOpen && (
+                <div className="fixed inset-0 bg-black/60 z-[110] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-xl shadow-2xl p-8 max-w-sm w-full text-center">
+                        {order?.is_archive ? (
+                            <RotateCcw className="w-10 h-10 text-emerald-500 mx-auto mb-4" />
+                        ) : (
+                            <Archive className="w-10 h-10 text-blue-500 mx-auto mb-4" />
+                        )}
+                        <h3 className={`text-lg font-bold mb-2 ${order?.is_archive ? 'text-emerald-600' : 'text-blue-600'}`}>
+                            {order?.is_archive ? 'Restore Order?' : 'Archive Order?'}
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                            {order?.is_archive
+                                ? 'This order will be moved back to the production line.'
+                                : 'This order will be moved to the archives.'}
+                        </p>
+                        <div className="flex gap-3 mt-6">
+                            <button onClick={() => setIsArchiveConfirmOpen(false)} className="flex-1 py-2 rounded-lg border hover:bg-gray-50">Cancel</button>
+                            <button onClick={handleConfirmArchive} className={`flex-1 py-2 rounded-lg text-white ${order?.is_archive ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'}`}>
+                                {order?.is_archive ? 'Restore' : 'Archive'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* --- New Robust Layout --- */}
+
+            {/* Top Bar */}
+            <div className="pt-8 mb-8">
+                <Link href={`${basePath}/production`} className="inline-flex items-center text-slate-500 hover:text-slate-800 mb-6 transition-colors">
+                    <ArrowLeft className="w-4 h-4 mr-2" /> Back
+                </Link>
+                <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                    <div>
+                        <div className="flex items-center gap-3 text-slate-400 mb-2 font-mono text-sm">
+                            <Hash className="w-4 h-4" />
+                            <span>Order ID: {order.id}</span>
+                        </div>
+                        <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif text-[#1a237e] text-slate-900 leading-tight break-words">
+                            {order.cl_name}
+                        </h1>
+                        <p className="text-xl text-slate-500 mt-2 font-light flex items-center gap-2">
+                            <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-md text-sm font-medium uppercase tracking-wide">
+                                {order.product_type?.product_type_name || 'Product'}
+                            </span>
+                        </p>
+                    </div>
+
+                    <span className={`px-4 py-1.5 md:px-6 md:py-2 rounded-full text-sm md:text-lg font-medium self-start whitespace-nowrap
+                        ${order.order_status_id === 1 ? 'bg-blue-100 text-blue-800' :
+                            order.order_status_id === 2 ? 'bg-yellow-100 text-yellow-800' :
+                                order.order_status_id === 3 ? 'bg-purple-100 text-purple-800' :
+                                    'bg-green-100 text-green-800'}`}>
+                        {order.order_status?.order_status_name || 'Status Unknown'}
+                    </span>
+                </div>
+            </div>
+
+            {/* Metrics Grid - 1 Col Mobile, 2 Col Tablet, 3 Col Desktop */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-8">
+                <div className="bg-white p-5 md:p-6 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <CreditCard className="w-16 h-16 text-emerald-600" />
+                    </div>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Price</p>
+                    <p className="text-3xl md:text-4xl font-bold text-emerald-600">
+                        {order.price ? `€${order.price.toFixed(2)}` : 'Quoting...'}
+                    </p>
+                </div>
+
+                <div className="bg-white p-5 md:p-6 rounded-2xl border border-slate-100 shadow-sm">
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                        <Calendar className="w-4 h-4" /> Ordered
+                    </p>
+                    <p className="text-xl md:text-2xl text-slate-800">{formatDate(order.ord_time)}</p>
+                </div>
+
+                {/* Spans 2 cols on tablet to look better, or just 1. Let's keep 1 for simplicity or use col-span-full sm:col-span-2 md:col-span-1 for last item? No, specific span is messy. 2 cols is fine, last one will just handle itself. */}
+                <div className="bg-white p-5 md:p-6 rounded-2xl border border-slate-100 shadow-sm sm:col-span-2 md:col-span-1">
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                        <Truck className="w-4 h-4" /> Shipping
+                    </p>
+                    <p className={`text-xl md:text-2xl ${order.ship_date ? 'text-slate-800' : 'text-slate-400 italic'}`}>
+                        {formatDate(order.ship_date)}
+                    </p>
+                </div>
+            </div>
+
+            {/* Notes Section */}
+            <div className="bg-slate-50 p-6 md:p-8 rounded-2xl border border-slate-200 mb-8">
+                <div className="flex items-center gap-2 mb-4 text-slate-400">
+                    <FileText className="w-5 h-5" />
+                    <span className="text-sm font-bold uppercase tracking-wider">Notes / Use Case</span>
+                </div>
+                <div className="text-base md:text-lg text-slate-700 leading-relaxed font-serif whitespace-pre-wrap">
+                    {order.note || "No notes provided."}
+                </div>
+            </div>
+
+            {/* File Section */}
+            {order.file_name && (
+                <div className="mb-32">
+                    <div className="flex items-center gap-2 mb-4 text-slate-400">
+                        <Save className="w-5 h-5" />
+                        <span className="text-sm font-bold uppercase tracking-wider">Attached File</span>
+                    </div>
+                    {fileUrl ? (
+                        <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="block group">
+                            <div className="bg-white border-2 border-dashed border-indigo-200 rounded-2xl p-6 md:p-8 flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-4 sm:gap-6 hover:bg-indigo-50/50 hover:border-indigo-400 transition-all cursor-pointer text-center sm:text-left">
+                                <div className="bg-indigo-100 p-4 rounded-full group-hover:scale-110 transition-transform shrink-0">
+                                    <FileText className="w-8 h-8 text-indigo-600" />
+                                </div>
+                                <div className="min-w-0">
+                                    <span className="block text-lg md:text-xl font-bold text-indigo-900 mb-1 break-all">{order.file_name.split('/').pop()}</span>
+                                    <span className="text-indigo-500 text-sm flex items-center justify-center sm:justify-start gap-1">Open in new tab <ExternalLink className="w-3 h-3" /></span>
+                                </div>
+                            </div>
+                        </a>
+                    ) : (
+                        <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-6 md:p-8 flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-6 opacity-75 text-center sm:text-left">
+                            <FileText className="w-8 h-8 text-slate-400 shrink-0" />
+                            <div>
+                                <span className="block text-xl font-medium text-slate-500 break-all">{order.file_name}</span>
+                                <span className="text-slate-400 text-sm">File not accessible (Legacy Path)</span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Floating Action Bar */}
+            <div className="fixed bottom-6 left-0 right-0 px-4 md:px-6 z-50 pointer-events-none">
+                <div className="max-w-2xl mx-auto pointer-events-auto">
+                    <div className="bg-white/90 backdrop-blur-xl border border-slate-200 shadow-2xl rounded-2xl p-2 md:p-3 flex justify-between items-center gap-2 md:gap-3">
+                        <button onClick={handleArchiveClick} className="flex-1 flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-2 md:px-4 py-2 md:py-3 rounded-xl hover:bg-slate-100 transition-colors text-slate-600">
+                            {order?.is_archive ? <RotateCcw className="w-5 h-5" /> : <Archive className="w-5 h-5" />}
+                            <span className="text-[10px] md:text-sm font-semibold uppercase md:normal-case tracking-wide md:tracking-normal">
+                                {order?.is_archive ? 'Restore' : 'Archive'}
+                            </span>
+                        </button>
+                        <button onClick={handleOpenUpdate} className="flex-1 flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-2 md:px-4 py-2 md:py-3 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors">
+                            <Edit3 className="w-5 h-5" /> <span className="text-[10px] md:text-sm font-semibold uppercase md:normal-case tracking-wide md:tracking-normal">Modify</span>
+                        </button>
+                        <button onClick={handleDeleteClick} className="flex-1 flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-2 md:px-4 py-2 md:py-3 rounded-xl hover:bg-red-50 text-red-600 transition-colors">
+                            <Trash2 className="w-5 h-5" /> <span className="text-[10px] md:text-sm font-semibold uppercase md:normal-case tracking-wide md:tracking-normal">Delete</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}

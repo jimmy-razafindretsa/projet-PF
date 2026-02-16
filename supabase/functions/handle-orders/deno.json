@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "react"
+  },
+  "imports": {
+    "@supabase/functions-js": "jsr:@supabase/functions-js@^2",
+    "react": "npm:react@18.3.1",
+    "react-dom/server": "npm:react-dom@18.3.1/server",
+    "@react-email/components": "npm:@react-email/components@0.0.12",
+    "resend": "npm:resend@2.0.0"
+  }
+}
