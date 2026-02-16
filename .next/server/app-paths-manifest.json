@@ -1,16 +1,17 @@
 {
-  "/_not-found": "app/_not-found.js",
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
   "/api/debug-storage/route": "app/api/debug-storage/route.js",
+  "/client_dashboard/completed/page": "app/client_dashboard/completed/page.js",
+  "/client_dashboard/new-order/page": "app/client_dashboard/new-order/page.js",
+  "/client_dashboard/order_detail/[id]/page": "app/client_dashboard/order_detail/[id]/page.js",
+  "/client_dashboard/page": "app/client_dashboard/page.js",
+  "/client_dashboard/production/page": "app/client_dashboard/production/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
   "/order_detail/[id]/page": "app/order_detail/[id]/page.js",
+  "/page": "app/page.js",
   "/supplier_dashboard/completed/page": "app/supplier_dashboard/completed/page.js",
   "/supplier_dashboard/order_detail/[id]/page": "app/supplier_dashboard/order_detail/[id]/page.js",
-  "/favicon.ico/route": "app/favicon.ico/route.js",
-  "/supplier_dashboard/production/page": "app/supplier_dashboard/production/page.js",
-  "/page": "app/page.js",
   "/supplier_dashboard/page": "app/supplier_dashboard/page.js",
-  "/client_dashboard/completed/page": "app/client_dashboard/completed/page.js",
-  "/client_dashboard/order_detail/[id]/page": "app/client_dashboard/order_detail/[id]/page.js",
-  "/client_dashboard/production/page": "app/client_dashboard/production/page.js",
-  "/client_dashboard/new-order/page": "app/client_dashboard/new-order/page.js",
-  "/client_dashboard/page": "app/client_dashboard/page.js"
+  "/supplier_dashboard/production/page": "app/supplier_dashboard/production/page.js"
 }
