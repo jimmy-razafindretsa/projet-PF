@@ -3,14 +3,15 @@ import { Navbar } from "../../components/navbar";
 import { signOut } from "../../actions/signout";
 import { OrderList } from "@/app/components/order_list";
 
-export default function CompletedPage({
+export default async function CompletedPage({
     searchParams,
 }: {
-    searchParams?: {
+    searchParams?: Promise<{
         search?: string;
-    };
+    }>;
 }) {
     const userRole = "supplier";
+    const resolvedSearchParams = await searchParams;
 
     return (
         <div className="flex flex-col min-h-screen">
@@ -21,7 +22,7 @@ export default function CompletedPage({
             <main className="flex-1 p-8">
                 <OrderList
                     isArchive={true}
-                    searchParams={searchParams}
+                    searchParams={resolvedSearchParams}
                     title="Supplier Archives"
                     subtitle="Completed Orders"
                     basePath="/supplier_dashboard"

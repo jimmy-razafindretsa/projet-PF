@@ -1,6 +1,5 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { Pool } from 'pg';
 
 export const createClient = async (cookieStore: ReturnType<typeof cookies>) => {
     const resolvedCookieStore = await cookieStore;
@@ -34,13 +33,3 @@ export const createClient = async (cookieStore: ReturnType<typeof cookies>) => {
         }
     )
 }
-// lib/db.ts
-
-
-const pool = new Pool({
-    connectionString: process.env.NEXT_PUBLIC_SUPABASE_URL, // Ensure this is in your .env file
-});
-
-export const db = {
-    query: (text: string, params?: any[]) => pool.query(text, params),
-};

@@ -1,16 +1,17 @@
 import { OrderList } from "@/app/components/order_list";
 
-export default function CompletedOrdersPage({
+export default async function CompletedOrdersPage({
     searchParams,
 }: {
-    searchParams?: {
+    searchParams?: Promise<{
         search?: string;
-    };
+    }>;
 }) {
+    const resolvedSearchParams = await searchParams;
     return (
         <OrderList
             isArchive={true}
-            searchParams={searchParams}
+            searchParams={resolvedSearchParams}
             title="Archives"
             subtitle="View completed orders"
             basePath="/client_dashboard"

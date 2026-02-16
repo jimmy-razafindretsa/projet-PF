@@ -1,16 +1,17 @@
 import { OrderList } from "@/app/components/order_list";
 
-export default function ProductionPage({
+export default async function ProductionPage({
     searchParams,
 }: {
-    searchParams?: {
+    searchParams?: Promise<{
         search?: string;
-    };
+    }>;
 }) {
+    const resolvedSearchParams = await searchParams;
     return (
         <OrderList
             isArchive={false}
-            searchParams={searchParams}
+            searchParams={resolvedSearchParams}
             title="Production Line"
             subtitle="Track the progress of your orders"
             basePath="/client_dashboard"
