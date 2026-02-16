@@ -1,1 +1,0 @@
-(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[237],{4588:(e,s,r)=>{"use strict";r.r(s),r.d(s,{default:()=>u});var a=r(5155);r(2115);var t=r(6428);function u(){return(0,a.jsx)(t.t,{basePath:"/supplier_dashboard"})}},5271:(e,s,r)=>{Promise.resolve().then(r.bind(r,4588))}},e=>{var s=s=>e(e.s=s);e.O(0,[869,192,428,441,684,358],()=>s(5271)),_N_E=e.O()}]);
