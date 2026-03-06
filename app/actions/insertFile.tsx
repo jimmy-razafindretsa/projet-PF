@@ -19,8 +19,11 @@ export async function insertFile(formData: FormData) {
     } else {
         console.log("User authenticated in insertFile:", user);
     }
+    const fileName = await uniqueFileName(file.name);
 
-    const filePath = `uploads/${await uniqueFileName(file.name)}`;
+    const filePath = `uploads/${fileName}`;
+
+
 
     const { data, error } = await supabase.storage
         .from('PDF')
@@ -34,6 +37,7 @@ export async function insertFile(formData: FormData) {
     return { success: true, data }
 }
 
+export const UniqueFileName = async (fileName: string) => uniqueFileName(fileName);
 
 export async function uniqueFileName(fileName: string) {
     var sanitizedName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');

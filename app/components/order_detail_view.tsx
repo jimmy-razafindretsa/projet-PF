@@ -191,7 +191,7 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
                         <h3 className="text-xl font-bold text-[#1a237e] mb-6">Update Order</h3>
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Price (€)</label>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Price ($)</label>
                                 <input type="number" name="price" value={updateForm.price} onChange={handleUpdateChange} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3" />
                             </div>
                             <div>
@@ -317,7 +317,7 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
                     </div>
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Price</p>
                     <p className="text-3xl md:text-4xl font-bold text-emerald-600">
-                        {order.price ? `€${order.price.toFixed(2)}` : 'Quoting...'}
+                        {order.price ? `$${order.price.toFixed(2)}` : 'Quoting...'}
                     </p>
                 </div>
 

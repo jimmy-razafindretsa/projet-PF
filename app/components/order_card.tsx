@@ -71,7 +71,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                             {productTypeName}
                         </span>
                         <span className="text-slate-900 font-bold whitespace-nowrap text-lg">
-                            € {price}
+                            $ {price}
                         </span>
                     </div>
                 </div>
