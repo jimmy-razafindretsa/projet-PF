@@ -183,6 +183,23 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
         setIsArchiveConfirmOpen(true);
     };
 
+    const handleQuickAction = (sendEmail: boolean) => {
+        if (!order) return;
+        // Pre-fill form with current order values (no changes, just confirm)
+        setUpdateForm({
+            price: order.price || '',
+            ship_date: order.ship_date ? new Date(order.ship_date).toISOString().split('T')[0] : '',
+            note: order.note || '',
+            supplier_note: order.supplier_note || '',
+            order_status_id: order.order_status_id || 0
+        });
+        setExistingFiles(order.Order_file || []);
+        setNewFiles([]);
+        setFilesToDelete([]);
+        setIsSendingEmail(sendEmail);
+        setIsConfirmOpen(true);
+    };
+
     const handleConfirmArchive = async () => {
         if (!order) return;
 
@@ -560,19 +577,25 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
 
             {/* Floating Action Bar */}
             <div className="fixed bottom-6 left-0 right-0 px-4 md:px-6 z-50 pointer-events-none">
-                <div className="max-w-2xl mx-auto pointer-events-auto">
-                    <div className="bg-white/90 backdrop-blur-xl border border-slate-200 shadow-2xl rounded-2xl p-2 md:p-3 flex justify-between items-center gap-2 md:gap-3">
-                        <button onClick={handleArchiveClick} className="flex-1 flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-2 md:px-4 py-2 md:py-3 rounded-xl hover:bg-slate-100 transition-colors text-slate-600">
+                <div className="max-w-3xl mx-auto pointer-events-auto">
+                    <div className="bg-white/90 backdrop-blur-xl border border-slate-200 shadow-2xl rounded-2xl p-2 md:p-3 flex justify-between items-center gap-1.5 md:gap-2">
+                        <button onClick={handleArchiveClick} className="flex-1 flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-2 md:px-3 py-2 md:py-3 rounded-xl hover:bg-slate-100 transition-colors text-slate-600">
                             {order?.is_archive ? <RotateCcw className="w-5 h-5" /> : <Archive className="w-5 h-5" />}
                             <span className="text-[10px] md:text-sm font-semibold uppercase md:normal-case tracking-wide md:tracking-normal">
                                 {order?.is_archive ? 'Restore' : 'Archive'}
                             </span>
                         </button>
-                        <button onClick={handleOpenUpdate} className="flex-1 flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-2 md:px-4 py-2 md:py-3 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors">
+                        <button onClick={handleOpenUpdate} className="flex-1 flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-2 md:px-3 py-2 md:py-3 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors">
                             <Edit3 className="w-5 h-5" /> <span className="text-[10px] md:text-sm font-semibold uppercase md:normal-case tracking-wide md:tracking-normal">Modify</span>
                         </button>
-                        <button onClick={handleDeleteClick} className="flex-1 flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-2 md:px-4 py-2 md:py-3 rounded-xl hover:bg-red-50 text-red-600 transition-colors">
+                        <button onClick={handleDeleteClick} className="flex-1 flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-2 md:px-3 py-2 md:py-3 rounded-xl hover:bg-red-50 text-red-600 transition-colors">
                             <Trash2 className="w-5 h-5" /> <span className="text-[10px] md:text-sm font-semibold uppercase md:normal-case tracking-wide md:tracking-normal">Delete</span>
+                        </button>
+                        <button onClick={() => handleQuickAction(false)} className="flex-1 flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-2 md:px-3 py-2 md:py-3 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors">
+                            <Save className="w-5 h-5" /> <span className="text-[10px] md:text-sm font-semibold uppercase md:normal-case tracking-wide md:tracking-normal">Save</span>
+                        </button>
+                        <button onClick={() => handleQuickAction(true)} className="flex-1 flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-2 md:px-3 py-2 md:py-3 rounded-xl bg-[#2e7d32] text-white hover:bg-green-800 transition-colors">
+                            <ExternalLink className="w-5 h-5" /> <span className="text-[10px] md:text-xs font-semibold uppercase tracking-wide">Send order/update</span>
                         </button>
                     </div>
                 </div>
