@@ -37,18 +37,29 @@ export const Navbar: React.FC<NavbarProps> = ({ userRole = 'client', onLogout })
       <div className="max-w-[95%] mx-auto px-4 h-24 flex justify-between items-center">
 
         {/* Brand Identity */}
-        <Link
-          href="/client_dashboard/production"
-          className="flex flex-col items-center cursor-pointer group"
-          onClick={() => setIsMobileMenuOpen(false)}
-        >
-          <h1 className="font-sans font-medium text-2xl italic tracking-tight text-white leading-none group-hover:text-indigo-200 transition-colors">
-            François Bertho
-          </h1>
-          <span className="text-[9px] font-sans text-indigo-200 tracking-[0.4em] uppercase mt-1">
-            PRODUCTION
-          </span>
-        </Link>
+        {userRole === 'supplier' ? (
+          <div className="flex flex-col items-center">
+            <h1 className="font-sans font-medium text-2xl italic tracking-tight text-white leading-none">
+              François Bertho
+            </h1>
+            <span className="text-[9px] font-sans text-indigo-200 tracking-[0.4em] uppercase mt-1">
+              PRODUCTION
+            </span>
+          </div>
+        ) : (
+          <Link
+            href="/client_dashboard/production"
+            className="flex flex-col items-center cursor-pointer group"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            <h1 className="font-sans font-medium text-2xl italic tracking-tight text-white leading-none group-hover:text-indigo-200 transition-colors">
+              François Bertho
+            </h1>
+            <span className="text-[9px] font-sans text-indigo-200 tracking-[0.4em] uppercase mt-1">
+              PRODUCTION
+            </span>
+          </Link>
+        )}
 
         {/* Mobile Menu Button */}
         <button
