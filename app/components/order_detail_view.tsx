@@ -578,19 +578,19 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
             {/* Floating Action Bar */}
             <div className="fixed bottom-6 left-0 right-0 px-4 md:px-6 z-50 pointer-events-none">
                 <div className="max-w-3xl mx-auto pointer-events-auto">
-                    <div className="bg-white/90 backdrop-blur-xl border border-slate-200 shadow-2xl rounded-2xl p-2 md:p-3 flex items-center gap-1.5">
+                    <div className="bg-white/90 backdrop-blur-xl border border-slate-200 shadow-2xl rounded-2xl p-2 md:p-3 flex items-center gap-1 sm:gap-1.5">
                         {/* Left group: secondary actions */}
-                        <button onClick={handleArchiveClick} className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl hover:bg-slate-100 transition-colors text-slate-500 text-sm font-medium">
+                        <button onClick={handleArchiveClick} className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2.5 rounded-xl hover:bg-slate-100 transition-colors text-slate-500 text-sm font-medium">
                             {order?.is_archive ? <RotateCcw className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
-                            <span>{order?.is_archive ? 'Restore' : 'Archive'}</span>
+                            <span className="hidden sm:inline">{order?.is_archive ? 'Restore' : 'Archive'}</span>
                         </button>
-                        <button onClick={handleOpenUpdate} className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl hover:bg-slate-100 transition-colors text-slate-500 text-sm font-medium">
+                        <button onClick={handleOpenUpdate} className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2.5 rounded-xl hover:bg-slate-100 transition-colors text-slate-500 text-sm font-medium">
                             <Edit3 className="w-4 h-4" />
-                            <span>Modify</span>
+                            <span className="hidden sm:inline">Modify</span>
                         </button>
-                        <button onClick={handleDeleteClick} className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl hover:bg-red-50 transition-colors text-red-500 text-sm font-medium">
+                        <button onClick={handleDeleteClick} className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2.5 rounded-xl hover:bg-red-50 transition-colors text-red-500 text-sm font-medium">
                             <Trash2 className="w-4 h-4" />
-                            <span>Delete</span>
+                            <span className="hidden sm:inline">Delete</span>
                         </button>
 
                         {/* Spacer */}
@@ -598,13 +598,13 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
                         <div className="w-px h-6 bg-slate-200" />
 
                         {/* Right group: primary actions */}
-                        <button onClick={() => handleQuickAction(false)} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors text-sm font-semibold">
+                        <button onClick={() => handleQuickAction(false)} className="flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl border border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors text-sm font-semibold">
                             <Save className="w-4 h-4" />
-                            Save
+                            <span className="hidden sm:inline">Save</span>
                         </button>
-                        <button onClick={() => handleQuickAction(true)} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#2e7d32] text-white hover:bg-green-800 transition-colors text-sm font-semibold">
+                        <button onClick={() => handleQuickAction(true)} className="flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl bg-[#2e7d32] text-white hover:bg-green-800 transition-colors text-sm font-semibold">
                             <ExternalLink className="w-4 h-4" />
-                            Send update
+                            <span className="hidden sm:inline">Send update</span>
                         </button>
                     </div>
                 </div>
