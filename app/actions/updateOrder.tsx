@@ -28,36 +28,17 @@ export async function updateOrder(params: UpdateOrderParams) {
 
     const { id, newFileNames, sendEmail, clientName, ...updates } = params;
 
-    // Validate price if present (optional check)
+    // Validate price if present
     if (typeof updates.price === 'number' && isNaN(updates.price)) {
-        console.error("SERVER: Invalid price detected:", updates.price);
         return { error: "Price must be a valid number." };
     }
 
-    // --- DEBUG: ID Type Check
-    console.log(`SERVER: ID is type: ${typeof id}, Value: ${id}`);
-
-    // --- DEBUG: Check Auth User
+    // Verify authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
-        console.error("SERVER: Auth User Error:", authError);
-    } else {
-        console.log("SERVER: Authenticated User ID:", user.id);
+        console.error("Auth Error:", authError);
+        return { error: "Unauthorized" };
     }
-
-    // --- DEBUG: Check if row exists and is visible (SELECT)
-    const { data: checkData, error: checkError } = await supabase
-        .from('Order')
-        .select('*')
-        .eq('id', id);
-
-    if (checkError) {
-        console.error("SERVER: Check SELECT Error:", checkError);
-    } else {
-        console.log(`SERVER: Check SELECT found ${checkData?.length} rows for ID ${id}`);
-    }
-
-    console.log("SERVER: Attempting update on ID:", id, "with updates:", updates);
 
     const { data, error } = await supabase
         .from('Order')
@@ -91,11 +72,9 @@ export async function updateOrder(params: UpdateOrderParams) {
     }
 
     if (sendEmail) {
-        console.log("SERVER: sendEmail flag is true, attempting to manually trigger email...");
-        
         const apiKey = process.env.RESEND_API_KEY;
         if (!apiKey) {
-            console.warn("SERVER: RESEND_API_KEY is not defined in the environment variables! Skipping email dispatch.");
+            console.warn("RESEND_API_KEY not set. Skipping email dispatch.");
         } else {
             const resend = new Resend(apiKey);
             const SUPPLIER_EMAIL = process.env.NEXT_PUBLIC_SUPPLIER_EMAIL || "no-reply@example.com";
@@ -158,11 +137,11 @@ export async function updateOrder(params: UpdateOrderParams) {
         }
     }
 
-    console.log("SERVER: Update successful. Data returned:", data);
-
     revalidatePath('/client_dashboard/production');
     revalidatePath('/client_dashboard/completed');
     revalidatePath(`/client_dashboard/order_detail/${id}`);
+    revalidatePath('/supplier_dashboard/production');
+    revalidatePath('/supplier_dashboard/completed');
 
     return { success: true, data };
 }

@@ -87,14 +87,13 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
         setUpdateForm(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleSave = () => {
+    const handleSave = (sendEmail: boolean) => {
+        setIsSendingEmail(sendEmail);
         setIsConfirmOpen(true);
     };
 
     const handleConfirmUpdate = async () => {
-        console.log("Confirm update clicked");
         if (!order) return;
-        
         setIsUpdating(true);
 
         const priceNum = parseFloat(updateForm.price as any);
@@ -105,18 +104,16 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
         const shipDateValue = updateForm.ship_date ? `${updateForm.ship_date}T12:00:00Z` : null;
 
         const payload = {
-            id: String(order.id), // Ensure string
+            id: String(order.id),
             price: isNaN(priceNum) ? null : priceNum,
             ship_date: shipDateValue,
             note: updateForm.note || null,
-            order_status_id: Number(updateForm.order_status_id)
+            order_status_id: Number(updateForm.order_status_id),
+            sendEmail: isSendingEmail,
+            clientName: order.cl_name || undefined,
         };
 
-        console.log("Sending update with:", payload);
-
         const res = await updateOrder(payload);
-
-        console.log("Update response:", res);
 
         if (res?.error) {
             alert(`Update failed: ${res.error}`);
@@ -227,7 +224,8 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
                         </div>
                         <div className="flex gap-3 mt-6">
                             <button onClick={() => setIsUpdateModalOpen(false)} className="flex-1 py-3 rounded-xl border border-slate-200">Cancel</button>
-                            <button onClick={handleSave} className="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-semibold">Save</button>
+                            <button onClick={() => handleSave(false)} className="flex-1 py-3 rounded-xl bg-purple-600 text-white font-semibold hover:bg-purple-700 transition-colors">Save</button>
+                            <button onClick={() => handleSave(true)} className="flex-1 py-3 rounded-xl bg-[#2e7d32] text-white font-semibold hover:bg-green-800 transition-colors">Send</button>
                         </div>
                     </div>
                 </div>
@@ -236,7 +234,14 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
                 <div className="fixed inset-0 bg-black/60 z-[110] flex items-center justify-center p-4">
                     <div className="bg-white rounded-xl shadow-2xl p-8 max-w-sm w-full text-center">
                         <AlertTriangle className="w-10 h-10 text-yellow-500 mx-auto mb-4" />
-                        <h3 className="text-lg font-bold mb-2">Confirm Updates?</h3>
+                        <h3 className="text-lg font-bold mb-2">
+                            {isSendingEmail ? "Confirm & Send?" : "Confirm Save?"}
+                        </h3>
+                        <p className="text-sm text-slate-500 mb-2">
+                            {isSendingEmail
+                                ? "This will save changes and notify the other party by email."
+                                : "This will silently save your changes — no email will be sent."}
+                        </p>
                         <div className="flex gap-3 mt-6">
                             <button 
                                 onClick={() => setIsConfirmOpen(false)} 
