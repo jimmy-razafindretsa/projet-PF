@@ -231,47 +231,75 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
                     <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
                         <h3 className="text-xl font-bold text-[#1a237e] mb-5">Update Order</h3>
                         <div className="space-y-4">
-                            {/* Price */}
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Price ($)</label>
-                                <input type="number" name="price" value={updateForm.price} onChange={handleUpdateChange} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3" />
-                            </div>
-                            {/* Shipping Date */}
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Expected Shipping Date</label>
-                                <input type="date" name="ship_date" value={updateForm.ship_date} onChange={handleUpdateChange} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3" />
-                            </div>
-                            {/* Status */}
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Status</label>
-                                <select name="order_status_id" value={updateForm.order_status_id} onChange={handleUpdateChange} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3">
-                                    {statuses.map(s => <option key={s.id} value={s.id}>{s.order_status_name}</option>)}
-                                </select>
-                            </div>
-                            {/* Supplier Notes */}
-                            <div className="border border-purple-200 rounded-xl p-3 bg-purple-50/40">
-                                <label className="block text-xs font-bold text-purple-600 uppercase tracking-wider mb-1">Supplier Notes</label>
-                                <textarea
-                                    name="supplier_note"
-                                    rows={3}
-                                    value={updateForm.supplier_note}
-                                    onChange={handleUpdateChange}
-                                    placeholder="Internal notes from supplier..."
-                                    className="w-full bg-white border border-purple-200 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
-                                />
-                            </div>
-                            {/* FB Notes (Client) */}
-                            <div className="border border-indigo-200 rounded-xl p-3 bg-indigo-50/40">
-                                <label className="block text-xs font-bold text-indigo-600 uppercase tracking-wider mb-1">FB Notes (Client)</label>
-                                <textarea
-                                    name="note"
-                                    rows={3}
-                                    value={updateForm.note}
-                                    onChange={handleUpdateChange}
-                                    placeholder="Notes from François Bertho..."
-                                    className="w-full bg-white border border-indigo-200 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                                />
-                            </div>
+                            {/* Derive role from basePath */}
+                            {(() => {
+                                const isSupplier = basePath.includes('supplier');
+                                const clientStatuses = [1, 2, 7]; // To be submitted, Submitted, Review completed
+                                const supplierStatuses = [3, 4, 5, 6]; // Checking, Review Needed, In production, Shipped
+                                const allowedStatusIds = isSupplier ? supplierStatuses : clientStatuses;
+                                const filteredStatuses = statuses.filter(s => allowedStatusIds.includes(s.id));
+                                return (
+                                    <>
+                                        {/* Price - supplier editable, client read-only */}
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Price (€)</label>
+                                            <input
+                                                type="number"
+                                                name="price"
+                                                value={updateForm.price}
+                                                onChange={handleUpdateChange}
+                                                disabled={!isSupplier}
+                                                className={`w-full bg-slate-50 border border-slate-200 rounded-lg p-3 ${!isSupplier ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            />
+                                        </div>
+                                        {/* Shipping Date - supplier editable, client read-only */}
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Expected Shipping Date</label>
+                                            <input
+                                                type="date"
+                                                name="ship_date"
+                                                value={updateForm.ship_date}
+                                                onChange={handleUpdateChange}
+                                                disabled={!isSupplier}
+                                                className={`w-full bg-slate-50 border border-slate-200 rounded-lg p-3 ${!isSupplier ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            />
+                                        </div>
+                                        {/* Status - filtered per role */}
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Status</label>
+                                            <select name="order_status_id" value={updateForm.order_status_id} onChange={handleUpdateChange} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3">
+                                                {filteredStatuses.map(s => <option key={s.id} value={s.id}>{s.order_status_name}</option>)}
+                                            </select>
+                                        </div>
+                                        {/* Supplier Notes - supplier editable, client read-only */}
+                                        <div className="border border-purple-200 rounded-xl p-3 bg-purple-50/40">
+                                            <label className="block text-xs font-bold text-purple-600 uppercase tracking-wider mb-1">Supplier Notes</label>
+                                            <textarea
+                                                name="supplier_note"
+                                                rows={3}
+                                                value={updateForm.supplier_note}
+                                                onChange={handleUpdateChange}
+                                                disabled={!isSupplier}
+                                                placeholder="Internal notes from supplier..."
+                                                className={`w-full bg-white border border-purple-200 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 ${!isSupplier ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                            />
+                                        </div>
+                                        {/* FB Notes (Client) - client editable, supplier read-only */}
+                                        <div className="border border-indigo-200 rounded-xl p-3 bg-indigo-50/40">
+                                            <label className="block text-xs font-bold text-indigo-600 uppercase tracking-wider mb-1">FB Notes (Client)</label>
+                                            <textarea
+                                                name="note"
+                                                rows={3}
+                                                value={updateForm.note}
+                                                onChange={handleUpdateChange}
+                                                disabled={isSupplier}
+                                                placeholder="Notes from François Bertho..."
+                                                className={`w-full bg-white border border-indigo-200 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 ${isSupplier ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                            />
+                                        </div>
+                                    </>
+                                );
+                            })()}
                             {/* File Management */}
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Update Files</label>
@@ -478,45 +506,55 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
                 </div>
             </div>
 
-            {/* Notes Section */}
-            <div className="bg-slate-50 p-6 md:p-8 rounded-2xl border border-slate-200 mb-8">
-                <div className="flex items-center gap-2 mb-4 text-slate-400">
-                    <FileText className="w-5 h-5" />
-                    <span className="text-sm font-bold uppercase tracking-wider">Notes / Use Case</span>
+            {/* Notes Section - Two separate boxes */}
+            <div className="space-y-4 mb-8">
+                {/* Supplier Notes */}
+                <div className="bg-purple-50 p-5 md:p-6 rounded-2xl border border-purple-200">
+                    <div className="flex items-center gap-2 mb-3 text-purple-500">
+                        <FileText className="w-4 h-4" />
+                        <span className="text-xs font-bold uppercase tracking-wider">Supplier Notes</span>
+                    </div>
+                    <div className="text-base text-purple-900 leading-relaxed font-serif whitespace-pre-wrap">
+                        {order.supplier_note || <span className="text-purple-300 italic text-sm">No supplier notes yet.</span>}
+                    </div>
                 </div>
-                <div className="text-base md:text-lg text-slate-700 leading-relaxed font-serif whitespace-pre-wrap">
-                    {order.note || "No notes provided."}
+                {/* FB Notes (Client) */}
+                <div className="bg-red-50 p-5 md:p-6 rounded-2xl border border-red-200">
+                    <div className="flex items-center gap-2 mb-3 text-red-400">
+                        <FileText className="w-4 h-4" />
+                        <span className="text-xs font-bold uppercase tracking-wider">FB Notes (Client)</span>
+                    </div>
+                    <div className="text-base text-red-900 leading-relaxed font-serif whitespace-pre-wrap">
+                        {order.note || <span className="text-red-300 italic text-sm">No client notes yet.</span>}
+                    </div>
                 </div>
             </div>
 
-            {/* File Section */}
-            {order.file_name && (
+            {/* File Section - from Order_file junction table */}
+            {order.Order_file && order.Order_file.length > 0 && (
                 <div className="mb-32">
                     <div className="flex items-center gap-2 mb-4 text-slate-400">
                         <Save className="w-5 h-5" />
-                        <span className="text-sm font-bold uppercase tracking-wider">Attached File</span>
+                        <span className="text-sm font-bold uppercase tracking-wider">Attached Files</span>
                     </div>
-                    {fileUrl ? (
-                        <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="block group">
-                            <div className="bg-white border-2 border-dashed border-indigo-200 rounded-2xl p-6 md:p-8 flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-4 sm:gap-6 hover:bg-indigo-50/50 hover:border-indigo-400 transition-all cursor-pointer text-center sm:text-left">
-                                <div className="bg-indigo-100 p-4 rounded-full group-hover:scale-110 transition-transform shrink-0">
-                                    <FileText className="w-8 h-8 text-indigo-600" />
-                                </div>
-                                <div className="min-w-0">
-                                    <span className="block text-lg md:text-xl font-bold text-indigo-900 mb-1 break-all">{order.file_name.split('/').pop()}</span>
-                                    <span className="text-indigo-500 text-sm flex items-center justify-center sm:justify-start gap-1">Open in new tab <ExternalLink className="w-3 h-3" /></span>
-                                </div>
-                            </div>
-                        </a>
-                    ) : (
-                        <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-6 md:p-8 flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-6 opacity-75 text-center sm:text-left">
-                            <FileText className="w-8 h-8 text-slate-400 shrink-0" />
-                            <div>
-                                <span className="block text-xl font-medium text-slate-500 break-all">{order.file_name}</span>
-                                <span className="text-slate-400 text-sm">File not accessible (Legacy Path)</span>
-                            </div>
-                        </div>
-                    )}
+                    <div className="space-y-3">
+                        {order.Order_file.map((f: any) => {
+                            const url = supabase.storage.from('PDF').getPublicUrl(f.fileName).data.publicUrl;
+                            return (
+                                <a key={f.id} href={url} target="_blank" rel="noopener noreferrer" className="block group">
+                                    <div className="bg-white border-2 border-dashed border-indigo-200 rounded-2xl p-5 flex flex-col sm:flex-row items-center sm:justify-start gap-4 hover:bg-indigo-50/50 hover:border-indigo-400 transition-all cursor-pointer">
+                                        <div className="bg-indigo-100 p-3 rounded-full group-hover:scale-110 transition-transform shrink-0">
+                                            <FileText className="w-6 h-6 text-indigo-600" />
+                                        </div>
+                                        <div className="min-w-0 text-center sm:text-left">
+                                            <span className="block text-base font-bold text-indigo-900 mb-0.5 break-all">{f.fileName?.split('/').pop()}</span>
+                                            <span className="text-indigo-500 text-xs flex items-center justify-center sm:justify-start gap-1">Open in new tab <ExternalLink className="w-3 h-3" /></span>
+                                        </div>
+                                    </div>
+                                </a>
+                            );
+                        })}
+                    </div>
                 </div>
             )}
 
