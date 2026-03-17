@@ -5,6 +5,7 @@ export default async function ProductionPage({
 }: {
     searchParams?: Promise<{
         search?: string;
+        status?: string;
     }>;
 }) {
     const resolvedSearchParams = await searchParams;

@@ -5,6 +5,7 @@ export default async function CompletedOrdersPage({
 }: {
     searchParams?: Promise<{
         search?: string;
+        status?: string;
     }>;
 }) {
     const resolvedSearchParams = await searchParams;

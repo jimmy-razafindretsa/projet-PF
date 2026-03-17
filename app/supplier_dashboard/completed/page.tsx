@@ -8,6 +8,7 @@ export default async function CompletedPage({
 }: {
     searchParams?: Promise<{
         search?: string;
+        status?: string;
     }>;
 }) {
     const userRole = "supplier";

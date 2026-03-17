@@ -1,20 +1,22 @@
 export type UserRole = 'client' | 'supplier' | null;
 
 export enum OrderStatusId {
-    CANCELED = 1,
-    UNREAD = 2,
-    READ = 3,
-    IN_PRODUCTION = 4,
-    SHIPPED = 5,
-    REVIEW_REQUESTED = 6
+    TO_BE_SUBMITTED = 1,
+    SUBMITTED = 2,
+    CHECKING = 3,
+    REVIEW_NEEDED = 4,
+    IN_PRODUCTION = 5,
+    SHIPPED = 6,
+    REVIEW_COMPLETED = 7
 }
 
 // Map the ID to the Display Name
 export const OrderStatusLabels: Record<number, string> = {
-    [OrderStatusId.CANCELED]: "canceled",
-    [OrderStatusId.UNREAD]: "unread",
-    [OrderStatusId.READ]: "read",
-    [OrderStatusId.IN_PRODUCTION]: "in production",
-    [OrderStatusId.SHIPPED]: "shipped",
-    [OrderStatusId.REVIEW_REQUESTED]: "review requested",
+    [OrderStatusId.TO_BE_SUBMITTED]: "To be submitted",
+    [OrderStatusId.SUBMITTED]: "Submitted",
+    [OrderStatusId.CHECKING]: "Checking",
+    [OrderStatusId.REVIEW_NEEDED]: "Review Needed",
+    [OrderStatusId.IN_PRODUCTION]: "In production",
+    [OrderStatusId.SHIPPED]: "Shipped",
+    [OrderStatusId.REVIEW_COMPLETED]: "Review completed",
 };

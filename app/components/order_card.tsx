@@ -14,7 +14,9 @@ export interface OrderCardProps {
     shippingDate: string;
     statusName: string;
     note?: string;
+    supplier_note?: string;
     statusId: number;
+    orderFiles?: { id: number, fileName: string }[];
     basePath?: string;
 }
 
@@ -27,24 +29,28 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     shippingDate,
     statusName,
     note,
+    supplier_note,
     statusId,
+    orderFiles = [],
     basePath = "/client_dashboard",
 }) => {
     // Status badge styling
     const getStatusStyles = (statusId: number): string => {
         switch (statusId) {
-            case OrderStatusId.CANCELED:
-                return "bg-red-100 text-red-700 border-red-200";
-            case OrderStatusId.UNREAD:
-                return "bg-blue-100 text-blue-700 border-blue-200";
-            case OrderStatusId.READ:
+            case OrderStatusId.TO_BE_SUBMITTED:
                 return "bg-gray-100 text-gray-700 border-gray-200";
+            case OrderStatusId.SUBMITTED:
+                return "bg-blue-100 text-blue-700 border-blue-200";
+            case OrderStatusId.CHECKING:
+                return "bg-indigo-100 text-indigo-700 border-indigo-200";
+            case OrderStatusId.REVIEW_NEEDED:
+                return "bg-red-100 text-red-700 border-red-200";
             case OrderStatusId.IN_PRODUCTION:
                 return "bg-amber-100 text-amber-700 border-amber-200";
             case OrderStatusId.SHIPPED:
                 return "bg-green-100 text-green-700 border-green-200";
-            case OrderStatusId.REVIEW_REQUESTED:
-                return "bg-purple-100 text-purple-700 border-purple-200";
+            case OrderStatusId.REVIEW_COMPLETED:
+                return "bg-emerald-100 text-emerald-700 border-emerald-200";
             default:
                 return "bg-gray-50 text-gray-500 border-gray-100";
         }
@@ -71,7 +77,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                             {productTypeName}
                         </span>
                         <span className="text-slate-900 font-bold whitespace-nowrap text-lg">
-                            $ {price}
+                            € {price}
                         </span>
                     </div>
                 </div>
@@ -96,19 +102,33 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                     </div>
 
                     <div className="flex justify-end col-span-2 sm:col-span-1 mt-1 sm:mt-0">
-                        <span className="flex items-center justify-center gap-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 w-full sm:w-auto px-4 py-2 rounded-lg text-xs font-bold transition-colors uppercase tracking-wide cursor-pointer">
-                            <FileText size={16} />
-                            <span>PDF</span>
-                        </span>
+                        {orderFiles.length > 0 && (
+                            <span className="flex items-center justify-center gap-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 w-full sm:w-auto px-4 py-2 rounded-lg text-xs font-bold transition-colors uppercase tracking-wide cursor-pointer">
+                                <FileText size={16} />
+                                <span>{orderFiles.length > 1 ? `${orderFiles.length} PDFs` : 'PDF'}</span>
+                            </span>
+                        )}
                     </div>
                 </div>
 
                 {/* Note Section */}
-                <div className="mt-4 bg-slate-50/50 rounded-lg p-3 border border-slate-100 flex gap-3">
-                    <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mt-0.5 shrink-0">Note</span>
-                    <p className="text-sm text-slate-600 italic leading-snug line-clamp-2">
-                        {note || "No note"}
-                    </p>
+                <div className="mt-4 flex flex-col gap-2">
+                    {supplier_note && (
+                        <div className="bg-purple-50/50 rounded-lg p-3 border border-purple-100 flex gap-3 items-start">
+                            <span className="text-purple-500 text-[10px] font-bold uppercase tracking-wider mt-0.5 shrink-0 w-[4.5rem]">Supplier Note</span>
+                            <p className="text-sm text-purple-900 leading-snug break-words line-clamp-2 w-full">
+                                {supplier_note}
+                            </p>
+                        </div>
+                    )}
+                    {(note || !supplier_note) && (
+                        <div className="bg-blue-50/50 rounded-lg p-3 border border-blue-100 flex gap-3 items-start">
+                            <span className="text-blue-500 text-[10px] font-bold uppercase tracking-wider mt-0.5 shrink-0 w-[4.5rem]">Client Note</span>
+                            <p className="text-sm text-blue-900 leading-snug break-words line-clamp-2 w-full">
+                                {note || "No note"}
+                            </p>
+                        </div>
+                    )}
                 </div>
             </div>
         </Link>

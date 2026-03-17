@@ -42,11 +42,11 @@ export const Navbar: React.FC<NavbarProps> = ({ userRole = 'client', onLogout })
           className="flex flex-col items-center cursor-pointer group"
           onClick={() => setIsMobileMenuOpen(false)}
         >
-          <h1 className="font-serif text-3xl italic tracking-tighter text-white leading-none group-hover:text-indigo-200 transition-colors">
-            François
+          <h1 className="font-sans font-medium text-2xl italic tracking-tight text-white leading-none group-hover:text-indigo-200 transition-colors">
+            François Bertho
           </h1>
           <span className="text-[9px] font-sans text-indigo-200 tracking-[0.4em] uppercase mt-1">
-            Bertho Production
+            PRODUCTION
           </span>
         </Link>
 

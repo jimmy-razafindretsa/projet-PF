@@ -1,15 +1,14 @@
 "use client";
 
 import React, { useState, useRef } from 'react';
-import { UploadCloud, Image as ImageIcon, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { UploadCloud, Image as ImageIcon, X, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { insertOrder } from '@/app/actions/insertOrder';
 import { insertFile } from '@/app/actions/insertFile';
 const products = [
-    "2 piece suit",
-    "3 Piece Suit",
-    "Jacket",
+    "Tailored Suit",
+    "Tailored Tuxedo",
     "Pants",
-    "Waistcoat"
+    "Jacket/Blazer"
 ];
 
 // Simple Toast Component for notifications
@@ -35,7 +34,7 @@ export default function NewOrderPage() {
         useCase: '',
         fileName: ''
     });
-    const [file, setFile] = useState<File | null>(null);
+    const [files, setFiles] = useState<File[]>([]);
     const [errors, setErrors] = useState<Record<string, boolean>>({});
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -55,23 +54,30 @@ export default function NewOrderPage() {
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            setFile(e.target.files[0]);
+        if (e.target.files) {
+            const newFiles = Array.from(e.target.files);
+            setFiles(prev => {
+                const combined = [...prev, ...newFiles];
+                return combined.slice(0, 2); // Limit to 2 files
+            });
             setErrors(prev => ({ ...prev, file: false }));
         }
     };
 
     const handleDrop = (e: React.DragEvent) => {
         e.preventDefault();
-        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            setFile(e.dataTransfer.files[0]);
+        if (e.dataTransfer.files) {
+            const newFiles = Array.from(e.dataTransfer.files);
+            setFiles(prev => {
+                const combined = [...prev, ...newFiles];
+                return combined.slice(0, 2); // Limit to 2 files
+            });
             setErrors(prev => ({ ...prev, file: false }));
         }
     };
 
-    const removeFile = (e: React.MouseEvent) => {
-        e.stopPropagation(); // Prevent triggering file input click
-        setFile(null);
+    const removeFile = (indexToRemove: number) => {
+        setFiles(prev => prev.filter((_, index) => index !== indexToRemove));
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
@@ -82,6 +88,7 @@ export default function NewOrderPage() {
 
 
     const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -90,7 +97,7 @@ export default function NewOrderPage() {
         const newErrors: Record<string, boolean> = {};
         if (!selectedProduct) newErrors.product = true;
         if (!formData.clientName.trim()) newErrors.clientName = true;
-        if (!file) newErrors.file = true;
+        if (files.length === 0) newErrors.file = true;
 
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
@@ -104,42 +111,49 @@ export default function NewOrderPage() {
 
     const confirmSubmit = async () => {
         if (!selectedProduct) return;
+        
+        setIsSubmitting(true);
 
-        let uploadedFilePath = '';
+        let uploadedFilePaths: string[] = [];
 
-        // 1. Upload File FIRST to get the correct path
-        if (file) {
-            const fileData = new FormData();
-            fileData.append('file', file);
-            const fileResult = await insertFile(fileData);
+        // 1. Upload Files FIRST to get the correct paths
+        if (files.length > 0) {
+            for (const f of files) {
+                const fileData = new FormData();
+                fileData.append('file', f);
+                const fileResult = await insertFile(fileData);
 
-            if (fileResult?.error) {
-                console.error("File upload failed:", fileResult.error);
-                showToast(`File upload failed: ${fileResult.error}`, 'error');
-                return;
-            }
+                if (fileResult?.error) {
+                    console.error("File upload failed:", fileResult.error);
+                    showToast(`File upload failed: ${fileResult.error}`, 'error');
+                    return;
+                }
 
-            // Supabase upload returns `data` with `path`
-            if (fileResult?.data?.path) {
-                uploadedFilePath = fileResult.data.path;
+                // Supabase upload returns `data` with `path`
+                if (fileResult?.data?.path) {
+                    uploadedFilePaths.push(fileResult.data.path);
+                }
             }
         }
 
-        // 2. Submit Order with the accurate file path
+        // 2. Submit Order with the accurate file paths
         const orderData = {
             ...formData,
-            fileName: uploadedFilePath || formData.fileName
+            fileNames: uploadedFilePaths, // Changed structure to accommodate multiple
+            fileName: '' // Send empty for legacy if needed, or omit if updated action ignores it
         };
 
         const orderResult = await insertOrder(orderData, selectedProduct);
         if (orderResult?.error) {
             console.error("Order submission failed:", orderResult.error);
             showToast(`Order failed: ${orderResult.error}`, 'error');
+            setIsSubmitting(false);
             return;
         }
 
         console.log("Submitting Order:", { product: selectedProduct, ...orderData });
         setShowConfirmModal(false);
+        setIsSubmitting(false);
         showToast("Order submitted successfully!", 'success');
 
         // Reset form
@@ -151,7 +165,7 @@ export default function NewOrderPage() {
             useCase: '',
             fileName: ''
         });
-        setFile(null);
+        setFiles([]);
         setSelectedProduct(null);
         setErrors({});
     };
@@ -177,15 +191,24 @@ export default function NewOrderPage() {
                         <div className="flex gap-3 justify-center">
                             <button
                                 onClick={() => setShowConfirmModal(false)}
-                                className="px-5 py-2.5 rounded-lg border border-slate-200 text-slate-700 font-semibold text-sm hover:bg-slate-50 transition-colors w-1/2"
+                                disabled={isSubmitting}
+                                className="px-5 py-2.5 rounded-lg border border-slate-200 text-slate-700 font-semibold text-sm hover:bg-slate-50 transition-colors w-1/2 disabled:opacity-50"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={confirmSubmit}
-                                className="px-5 py-2.5 rounded-lg bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 shadow-sm transition-colors w-1/2"
+                                disabled={isSubmitting}
+                                className="px-5 py-2.5 flex items-center justify-center gap-2 rounded-lg bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 shadow-sm transition-colors w-1/2 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                Confirm Submit
+                                {isSubmitting ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Submitting...
+                                    </>
+                                ) : (
+                                    "Confirm Submit"
+                                )}
                             </button>
                         </div>
                     </div>
@@ -301,24 +324,29 @@ export default function NewOrderPage() {
                                         ref={fileInputRef}
                                         className="hidden"
                                         accept=".pdf,.png,.jpg,.jpeg"
+                                        multiple
                                         onChange={handleFileChange}
                                     />
 
-                                    {file ? (
-                                        <div className="animate-fade-in flex flex-col items-center z-10">
-                                            <div className="bg-green-100 p-3 rounded-full mb-3 shadow-sm">
-                                                <CheckCircle className="text-green-600 w-8 h-8" />
-                                            </div>
-                                            <h3 className="text-slate-800 font-bold text-md mb-1 max-w-[200px] truncate">
-                                                {file.name}
-                                            </h3>
-                                            <p className="text-slate-500 text-xs mb-3">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                                            <button
-                                                onClick={removeFile}
-                                                className="text-red-500 hover:text-red-700 text-xs font-bold uppercase tracking-wider bg-white border border-red-200 hover:bg-red-50 px-3 py-1.5 rounded-full transition-colors flex items-center gap-1 shadow-sm"
-                                            >
-                                                <X className="w-3 h-3" /> Remove File
-                                            </button>
+                                    {files.length > 0 ? (
+                                        <div className="w-full flex justify-center gap-4">
+                                            {files.map((f, idx) => (
+                                                <div key={idx} className="animate-fade-in flex flex-col items-center z-10 w-1/2 p-4 bg-white rounded-lg shadow-sm border border-slate-100">
+                                                    <div className="bg-green-100 p-3 rounded-full mb-3 shadow-sm">
+                                                        <CheckCircle className="text-green-600 w-8 h-8" />
+                                                    </div>
+                                                    <h3 className="text-slate-800 font-bold text-sm mb-1 max-w-full truncate">
+                                                        {f.name}
+                                                    </h3>
+                                                    <p className="text-slate-500 text-xs mb-3">{(f.size / 1024 / 1024).toFixed(2)} MB</p>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); removeFile(idx); }}
+                                                        className="text-red-500 hover:text-red-700 text-xs font-bold uppercase tracking-wider bg-white border border-red-200 hover:bg-red-50 px-3 py-1.5 rounded-full transition-colors flex items-center gap-1 shadow-sm mt-auto"
+                                                    >
+                                                        <X className="w-3 h-3" /> Remove File
+                                                    </button>
+                                                </div>
+                                            ))}
                                         </div>
                                     ) : (
                                         <>
@@ -326,9 +354,9 @@ export default function NewOrderPage() {
                                                 <ImageIcon className="text-slate-400 w-8 h-8" />
                                             </div>
                                             <h3 className="text-indigo-600 font-bold text-lg mb-1">
-                                                Upload a file <span className="text-slate-500 font-normal">or drag and drop</span>
+                                                Upload files <span className="text-slate-500 font-normal">or drag and drop</span>
                                             </h3>
-                                            <p className="text-slate-400 text-sm"> PDF up to 10MB</p>
+                                            <p className="text-slate-400 text-sm"> Up to 2 files, 10MB each</p>
                                         </>
                                     )}
                                 </div>
@@ -338,7 +366,7 @@ export default function NewOrderPage() {
                             {/* Submit Button */}
                             <div className="flex justify-end pt-6">
                                 <button type="submit" className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 active:translate-y-0 text-sm flex items-center justify-center gap-2">
-                                    Submit Order
+                                    Save order
                                 </button>
                             </div>
                         </form>

@@ -33,28 +33,14 @@ export const handler = async (req: Request): Promise<Response> => {
         // or fetch it. For simplicity/speed, we'll use "Type " + ID if name unavailable in record.
         // If the record has product_type_name joined, great, but webhooks usually just have the table row.
         // We'll just genericize or assume cl_name is there.
-        emailSubject = "New Order Created";
-        emailComponent = (
-          <NewOrderEmail
-            clientName={cl_name || "Unknown Client"}
-            orderId={id}
-            productType={String(product_type_id)}
-            orderUrl={`${BASE_URL}/supplier_dashboard/order_detail/${id}`}
-          />
-        );
+        // Requirement: "Save order" brings order to production line, but doesn't send a notification to supplier
+        console.log("New order created, skipping email notification as per requirements.");
+        emailComponent = null;
         break;
       }
       case "UPDATE": {
-        const { cl_name, id } = record;
-        emailSubject = `Order Updated for ${cl_name}`;
-        emailComponent = (
-          <UpdatedOrderEmail
-            clientName={cl_name || "Unknown Client"}
-            orderId={id}
-            updates={record} // potentially diff with old_record if needed
-            orderUrl={`${BASE_URL}/supplier_dashboard/order_detail/${id}`}
-          />
-        );
+        console.log("Order updated. Email notifications are now handled manually via the server action.");
+        emailComponent = null;
         break;
       }
       case "DELETE": {

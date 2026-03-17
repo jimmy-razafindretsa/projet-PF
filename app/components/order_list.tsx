@@ -3,10 +3,12 @@ import { Suspense } from "react";
 import { cookies } from "next/headers";
 import { OrderCard } from "@/app/components/order_card";
 import SearchBar from "@/app/components/search_bar";
+import StatusFilter from "@/app/components/status_filter";
+import { getStatuses } from "@/app/actions/getStatuses";
 
 interface OrderListProps {
     isArchive?: boolean;
-    searchParams?: { search?: string };
+    searchParams?: { search?: string, status?: string };
     title: string;
     subtitle: string;
     basePath?: string;
@@ -22,8 +24,12 @@ export async function OrderList({
     const cookieStore = cookies();
     const supabase = await createClient(cookieStore);
 
-    // Use the search term if present
+    // Use the search and status term if present
     const query = searchParams?.search || '';
+    const statusFilterId = searchParams?.status || '';
+
+    // Fetch order statuses for the filter dropdown
+    const statuses = await getStatuses();
 
     // Start building the query
     let dataQuery = supabase
@@ -31,7 +37,8 @@ export async function OrderList({
         .select(`
             *,
             order_status(order_status_name),
-            product_type(product_type_name)
+            product_type(product_type_name),
+            Order_file(id, "fileName")
         `)
         .eq('is_archive', isArchive)
         .order('ord_time', { ascending: false });
@@ -39,6 +46,10 @@ export async function OrderList({
     // Apply filter if search term exists
     if (query) {
         dataQuery = dataQuery.ilike('cl_name', `%${query}%`);
+    }
+
+    if (statusFilterId) {
+        dataQuery = dataQuery.eq('order_status_id', parseInt(statusFilterId, 10));
     }
 
     const { data: orders, error } = await dataQuery;
@@ -52,13 +63,14 @@ export async function OrderList({
                     <h1 className="text-3xl font-serif italic text-gray-900">{title}</h1>
                     <p className="text-sm text-gray-500 uppercase tracking-wider mt-2">{subtitle}</p>
                 </div>
-                <div className="w-full md:w-auto">
+                <div className="w-full md:w-auto flex flex-col md:flex-row gap-3">
+                    <StatusFilter statuses={statuses} />
                     <SearchBar />
                 </div>
             </header>
 
             <Suspense fallback={<div className="animate-pulse bg-gray-100 h-64 rounded-lg w-full"></div>}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 justify-between">
+                <div className="flex flex-col gap-4">
                     {orders?.map((order) => (
                         <OrderCard
                             key={order.id}
@@ -67,10 +79,12 @@ export async function OrderList({
                             order_date={order.ord_time}
                             shippingDate={order.ship_date}
                             note={order.note}
+                            supplier_note={order.supplier_note}
                             statusId={order.order_status_id}
                             statusName={order.order_status?.order_status_name}
                             productTypeName={order.product_type?.product_type_name}
                             price={order.price}
+                            orderFiles={order.Order_file}
                             basePath={basePath}
                         />
                     ))}

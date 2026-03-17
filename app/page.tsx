@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import { UserRole } from "./types";
 
 export default function Home() {
@@ -100,9 +100,14 @@ export default function Home() {
             <button
               type="submit"
               disabled={loading}
-              className="mt-2 w-full rounded bg-black py-3 text-sm font-medium text-white transition-all hover:bg-zinc-800 hover:scale-[1.01] active:scale-[0.99] cursor-pointer shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mt-2 w-full flex items-center justify-center gap-2 rounded bg-black py-3 text-sm font-medium text-white transition-all hover:bg-zinc-800 hover:scale-[1.01] active:scale-[0.99] cursor-pointer shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "Logging in..." : "Login"}
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Logging in...
+                </>
+              ) : "Login"}
             </button>
           </form>
         </div>

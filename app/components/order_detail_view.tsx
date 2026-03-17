@@ -6,7 +6,7 @@ import { updateOrder } from '@/app/actions/updateOrder';
 import { deleteOrder } from '@/app/actions/deleteOrder';
 import { getStatuses } from '@/app/actions/getStatuses';
 import { createClient } from '@/lib/supabase/client';
-import { ArrowLeft, Trash2, Archive, Edit3, Calendar, Truck, CreditCard, FileText, X, Save, AlertTriangle, ExternalLink, User, Hash, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Trash2, Archive, Edit3, Calendar, Truck, CreditCard, FileText, X, Save, AlertTriangle, ExternalLink, User, Hash, RotateCcw, ImageIcon, CheckCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 
@@ -27,6 +27,8 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
     // Update State
     const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+    const [isSendingEmail, setIsSendingEmail] = useState(false);
+    const [isUpdating, setIsUpdating] = useState(false);
     const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
     const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
     const [statuses, setStatuses] = useState<any[]>([]);
@@ -92,6 +94,8 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
     const handleConfirmUpdate = async () => {
         console.log("Confirm update clicked");
         if (!order) return;
+        
+        setIsUpdating(true);
 
         const priceNum = parseFloat(updateForm.price as any);
 
@@ -116,10 +120,13 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
 
         if (res?.error) {
             alert(`Update failed: ${res.error}`);
+            setIsUpdating(false);
         } else {
             router.refresh(); // Use Next.js router refresh
             setIsConfirmOpen(false);
+            setIsUpdating(false);
             setIsUpdateModalOpen(false);
+            window.location.reload();
         }
     };
 
@@ -231,8 +238,27 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
                         <AlertTriangle className="w-10 h-10 text-yellow-500 mx-auto mb-4" />
                         <h3 className="text-lg font-bold mb-2">Confirm Updates?</h3>
                         <div className="flex gap-3 mt-6">
-                            <button onClick={() => setIsConfirmOpen(false)} className="flex-1 py-2 rounded-lg border">No</button>
-                            <button onClick={handleConfirmUpdate} className="flex-1 py-2 rounded-lg bg-indigo-600 text-white">Yes</button>
+                            <button 
+                                onClick={() => setIsConfirmOpen(false)} 
+                                disabled={isUpdating}
+                                className="flex-1 py-2 rounded-lg border disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={handleConfirmUpdate} 
+                                disabled={isUpdating}
+                                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-white font-bold uppercase tracking-wide disabled:opacity-50 disabled:cursor-not-allowed ${isSendingEmail ? 'bg-[#2e7d32]' : 'bg-purple-600'}`}
+                            >
+                                {isUpdating ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Saving...
+                                    </>
+                                ) : (
+                                    isSendingEmail ? "Send" : "Save"
+                                )}
+                            </button>
                         </div>
                     </div>
                 </div>

@@ -1,13 +1,15 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { Search, Loader2 } from "lucide-react";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import { useDebouncedCallback } from "use-debounce";
+import { useTransition } from "react";
 
 export const SearchBar = () => {
     const searchParams = useSearchParams();
     const pathname = usePathname();
     const { replace } = useRouter();
+    const [isPending, startTransition] = useTransition();
 
     const handleSearch = useDebouncedCallback((term: string) => {
         const params = new URLSearchParams(searchParams.toString());
@@ -16,14 +18,20 @@ export const SearchBar = () => {
         } else {
             params.delete("search");
         }
-        replace(`${pathname}?${params.toString()}`);
+        startTransition(() => {
+            replace(`${pathname}?${params.toString()}`);
+        });
     }, 300);
 
     return (
         <div className="w-full max-w-md">
             <div className="relative group">
                 <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-gray-400 group-focus-within:text-indigo-600 transition-colors duration-200">
-                    <Search size={20} />
+                    {isPending ? (
+                        <Loader2 size={20} className="animate-spin text-indigo-500" />
+                    ) : (
+                        <Search size={20} />
+                    )}
                 </div>
                 <input
                     type="search"

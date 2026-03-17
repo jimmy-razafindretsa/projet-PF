@@ -12,7 +12,8 @@ export async function getOrder(id: string) {
         .select(`
             *,
             order_status(order_status_name),
-            product_type(product_type_name)
+            product_type(product_type_name),
+            Order_file(id, "fileName")
         `)
         .eq('id', id)
         .single();

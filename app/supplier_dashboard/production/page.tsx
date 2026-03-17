@@ -8,6 +8,7 @@ export default async function Page2({
 }: {
     searchParams?: Promise<{
         search?: string;
+        status?: string;
     }>;
 }) {
     const userRole = "supplier";

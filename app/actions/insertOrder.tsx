@@ -13,6 +13,7 @@ interface OrderFormData {
     email: string;
     useCase: string;
     fileName: string;
+    fileNames?: string[];
 }
 
 export async function insertOrder(formData: OrderFormData, selectedProduct: string) {
@@ -21,7 +22,7 @@ export async function insertOrder(formData: OrderFormData, selectedProduct: stri
 
     const clientName = formData.clientName;
     const note = formData.useCase;
-    const fileName = formData.fileName;
+    const fileNames = formData.fileNames || [];
 
     // 1. Get Product Type ID
     // We try to find the product type by name.
@@ -64,23 +65,43 @@ export async function insertOrder(formData: OrderFormData, selectedProduct: stri
         return { error: "Product Type ID could not be determined." };
     }
 
-    // 2. Insert Order
-    const { data, error } = await supabase
+    // 2. Insert Order (No file_name column inserted)
+    const { data: orderData, error: orderError } = await supabase
         .from('Order')
         .insert([{
             cl_name: clientName,
             note: note,
             ord_time: new Date().toISOString(),
             order_status_id: 2,
-            file_name: fileName,
             product_type_id: productTypeId, // Valid ID
             is_archive: false
         }])
         .select();
 
-    if (error) {
-        console.error('Error inserting data:', error.message)
-        return { error: error.message }
+    if (orderError) {
+        console.error('Error inserting data:', orderError.message)
+        return { error: orderError.message }
+    }
+
+    // 3. Insert specific files to Order_file table if any
+    if (orderData && orderData.length > 0) {
+        const orderId = orderData[0].id;
+        
+        if (fileNames.length > 0) {
+            const filesToInsert = fileNames.map(f => ({
+                order_id: orderId,
+                fileName: f
+            }));
+            
+            const { error: fileError } = await supabase
+                .from('Order_file')
+                .insert(filesToInsert);
+                
+            if (fileError) {
+                 console.error('Error inserting file associations:', fileError.message);
+                 return { error: 'Order created, but error associating files.' };
+            }
+        }
     }
 
     revalidatePath('/')
