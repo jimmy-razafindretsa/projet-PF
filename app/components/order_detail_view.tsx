@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { getOrder } from '@/app/actions/getOrder';
 import { updateOrder } from '@/app/actions/updateOrder';
 import { deleteOrder } from '@/app/actions/deleteOrder';
+import { deleteFile } from '@/app/actions/deleteFile';
+import { insertFile } from '@/app/actions/insertFile';
 import { getStatuses } from '@/app/actions/getStatuses';
 import { createClient } from '@/lib/supabase/client';
-import { ArrowLeft, Trash2, Archive, Edit3, Calendar, Truck, CreditCard, FileText, X, Save, AlertTriangle, ExternalLink, User, Hash, RotateCcw, ImageIcon, CheckCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, Trash2, Archive, Edit3, Calendar, Truck, CreditCard, FileText, X, Save, AlertTriangle, ExternalLink, Hash, RotateCcw, Loader2, FileCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 
@@ -34,10 +36,16 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
     const [statuses, setStatuses] = useState<any[]>([]);
     const [updateForm, setUpdateForm] = useState({
         price: '',
-        ship_date: '', // Changed from ord_time
+        ship_date: '',
         note: '',
+        supplier_note: '',
         order_status_id: 0
     });
+    // File management in update modal
+    const [existingFiles, setExistingFiles] = useState<any[]>([]);
+    const [newFiles, setNewFiles] = useState<File[]>([]);
+    const [filesToDelete, setFilesToDelete] = useState<any[]>([]);
+    const newFileInputRef = useRef<HTMLInputElement>(null);
 
     const router = useRouter();
     const supabase = createClient();
@@ -74,11 +82,14 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
         if (!order) return;
         setUpdateForm({
             price: order.price || '',
-            // Handle date for input value (YYYY-MM-DD)
             ship_date: order.ship_date ? new Date(order.ship_date).toISOString().split('T')[0] : '',
             note: order.note || '',
+            supplier_note: order.supplier_note || '',
             order_status_id: order.order_status_id || 0
         });
+        setExistingFiles(order.Order_file || []);
+        setNewFiles([]);
+        setFilesToDelete([]);
         setIsUpdateModalOpen(true);
     };
 
@@ -92,15 +103,40 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
         setIsConfirmOpen(true);
     };
 
+    const handleRemoveExistingFile = (file: any) => {
+        setFilesToDelete(prev => [...prev, file]);
+        setExistingFiles(prev => prev.filter((f: any) => f.id !== file.id));
+    };
+
+    const handleNewFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            const selected = Array.from(e.target.files);
+            setNewFiles(prev => {
+                const combined = [...prev, ...selected];
+                return combined.slice(0, 2); // max 2 total new files
+            });
+        }
+    };
+
     const handleConfirmUpdate = async () => {
         if (!order) return;
         setIsUpdating(true);
 
-        const priceNum = parseFloat(updateForm.price as any);
+        // 1. Delete removed files
+        for (const f of filesToDelete) {
+            await deleteFile(f.id, f.fileName);
+        }
 
-        // Fix Date Issue: Append time to middle of day to avoid timezone rollback
-        // If user selects 2024-02-15, sending 2024-02-15T12:00:00Z allows it to stay 15th in most timezones
-        // Use null instead of undefined for serialization safety
+        // 2. Upload new files
+        const uploadedPaths: string[] = [];
+        for (const f of newFiles) {
+            const fd = new FormData();
+            fd.append('file', f);
+            const result = await insertFile(fd);
+            if (result?.data?.path) uploadedPaths.push(result.data.path);
+        }
+
+        const priceNum = parseFloat(updateForm.price as any);
         const shipDateValue = updateForm.ship_date ? `${updateForm.ship_date}T12:00:00Z` : null;
 
         const payload = {
@@ -108,7 +144,9 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
             price: isNaN(priceNum) ? null : priceNum,
             ship_date: shipDateValue,
             note: updateForm.note || null,
+            supplier_note: updateForm.supplier_note || null,
             order_status_id: Number(updateForm.order_status_id),
+            newFileNames: uploadedPaths.length > 0 ? uploadedPaths : undefined,
             sendEmail: isSendingEmail,
             clientName: order.cl_name || undefined,
         };
@@ -119,7 +157,6 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
             alert(`Update failed: ${res.error}`);
             setIsUpdating(false);
         } else {
-            router.refresh(); // Use Next.js router refresh
             setIsConfirmOpen(false);
             setIsUpdating(false);
             setIsUpdateModalOpen(false);
@@ -191,39 +228,110 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
             {/* --- Modals are unchanged essentially, just kept minimal for brevity in thought but included in write --- */}
             {isUpdateModalOpen && (
                 <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-lg w-full">
-                        <h3 className="text-xl font-bold text-[#1a237e] mb-6">Update Order</h3>
+                    <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+                        <h3 className="text-xl font-bold text-[#1a237e] mb-5">Update Order</h3>
                         <div className="space-y-4">
+                            {/* Price */}
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Price ($)</label>
                                 <input type="number" name="price" value={updateForm.price} onChange={handleUpdateChange} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3" />
                             </div>
+                            {/* Shipping Date */}
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Expected Shipping Date</label>
                                 <input type="date" name="ship_date" value={updateForm.ship_date} onChange={handleUpdateChange} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3" />
                             </div>
+                            {/* Status */}
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Status</label>
                                 <select name="order_status_id" value={updateForm.order_status_id} onChange={handleUpdateChange} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3">
                                     {statuses.map(s => <option key={s.id} value={s.id}>{s.order_status_name}</option>)}
                                 </select>
                             </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Note</label>
-                                <textarea name="note" rows={3} value={updateForm.note} onChange={handleUpdateChange} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3" />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Update File (Optional)</label>
-                                <input
-                                    type="file"
-                                    accept=".pdf"
-                                    onChange={(e) => { }}
-                                    className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                            {/* Supplier Notes */}
+                            <div className="border border-purple-200 rounded-xl p-3 bg-purple-50/40">
+                                <label className="block text-xs font-bold text-purple-600 uppercase tracking-wider mb-1">Supplier Notes</label>
+                                <textarea
+                                    name="supplier_note"
+                                    rows={3}
+                                    value={updateForm.supplier_note}
+                                    onChange={handleUpdateChange}
+                                    placeholder="Internal notes from supplier..."
+                                    className="w-full bg-white border border-purple-200 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
                                 />
                             </div>
+                            {/* FB Notes (Client) */}
+                            <div className="border border-indigo-200 rounded-xl p-3 bg-indigo-50/40">
+                                <label className="block text-xs font-bold text-indigo-600 uppercase tracking-wider mb-1">FB Notes (Client)</label>
+                                <textarea
+                                    name="note"
+                                    rows={3}
+                                    value={updateForm.note}
+                                    onChange={handleUpdateChange}
+                                    placeholder="Notes from François Bertho..."
+                                    className="w-full bg-white border border-indigo-200 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                                />
+                            </div>
+                            {/* File Management */}
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Update Files</label>
+                                {/* Existing files */}
+                                {existingFiles.length > 0 && (
+                                    <div className="space-y-2 mb-3">
+                                        {existingFiles.map((f: any) => (
+                                            <div key={f.id} className="flex items-center justify-between bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">
+                                                <div className="flex items-center gap-2 min-w-0">
+                                                    <FileCheck className="w-4 h-4 text-indigo-500 shrink-0" />
+                                                    <span className="text-xs text-slate-700 truncate">{f.fileName?.split('/').pop()}</span>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleRemoveExistingFile(f)}
+                                                    className="flex items-center gap-1 text-[10px] font-bold uppercase text-red-500 hover:text-red-700 border border-red-200 hover:bg-red-50 px-2 py-1 rounded-full transition-colors shrink-0 ml-2"
+                                                >
+                                                    <X className="w-3 h-3" /> Remove
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                {/* New file picker */}
+                                {(existingFiles.length + newFiles.length) < 2 && (
+                                    <div
+                                        onClick={() => newFileInputRef.current?.click()}
+                                        className="border-2 border-dashed border-slate-200 rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-slate-50 transition-colors"
+                                    >
+                                        <input
+                                            type="file"
+                                            accept=".pdf"
+                                            multiple
+                                            ref={newFileInputRef}
+                                            className="hidden"
+                                            onChange={handleNewFileChange}
+                                        />
+                                        <span className="text-xs text-indigo-500 font-semibold">+ Add file (PDF)</span>
+                                        <span className="text-[10px] text-slate-400 mt-0.5">Max 2 total files</span>
+                                    </div>
+                                )}
+                                {/* Newly selected files preview */}
+                                {newFiles.map((f, idx) => (
+                                    <div key={idx} className="flex items-center justify-between bg-green-50 border border-green-100 rounded-lg px-3 py-2 mt-2">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <FileCheck className="w-4 h-4 text-green-500 shrink-0" />
+                                            <span className="text-xs text-slate-700 truncate">{f.name}</span>
+                                        </div>
+                                        <button
+                                            onClick={() => setNewFiles(prev => prev.filter((_, i) => i !== idx))}
+                                            className="flex items-center gap-1 text-[10px] font-bold uppercase text-red-500 hover:text-red-700 border border-red-200 hover:bg-red-50 px-2 py-1 rounded-full transition-colors shrink-0 ml-2"
+                                        >
+                                            <X className="w-3 h-3" /> Remove
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
+                        {/* Action Buttons */}
                         <div className="flex gap-3 mt-6">
-                            <button onClick={() => setIsUpdateModalOpen(false)} className="flex-1 py-3 rounded-xl border border-slate-200">Cancel</button>
+                            <button onClick={() => setIsUpdateModalOpen(false)} className="flex-1 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors">Cancel</button>
                             <button onClick={() => handleSave(false)} className="flex-1 py-3 rounded-xl bg-purple-600 text-white font-semibold hover:bg-purple-700 transition-colors">Save</button>
                             <button onClick={() => handleSave(true)} className="flex-1 py-3 rounded-xl bg-[#2e7d32] text-white font-semibold hover:bg-green-800 transition-colors">Send</button>
                         </div>
