@@ -396,15 +396,15 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
                                 : "This will silently save your changes — no email will be sent."}
                         </p>
                         <div className="flex gap-3 mt-6">
-                            <button 
-                                onClick={() => setIsConfirmOpen(false)} 
+                            <button
+                                onClick={() => setIsConfirmOpen(false)}
                                 disabled={isUpdating}
                                 className="flex-1 py-2 rounded-lg border disabled:opacity-50"
                             >
                                 Cancel
                             </button>
-                            <button 
-                                onClick={handleConfirmUpdate} 
+                            <button
+                                onClick={handleConfirmUpdate}
                                 disabled={isUpdating}
                                 className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-white font-bold uppercase tracking-wide disabled:opacity-50 disabled:cursor-not-allowed ${isSendingEmail ? 'bg-[#2e7d32]' : 'bg-purple-600'}`}
                             >
@@ -501,7 +501,7 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
                     </div>
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Price</p>
                     <p className="text-3xl md:text-4xl font-bold text-emerald-600">
-                        {order.price ? `$${order.price.toFixed(2)}` : 'Quoting...'}
+                        {order.price ? `€${order.price.toFixed(2)}` : 'Quoting...'}
                     </p>
                 </div>
 
